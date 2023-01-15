@@ -172,13 +172,13 @@ module bracket_quadrant(centre_screw_a = false, centre_screw_b = false) {
     translate([0, 0, -(bracket_base_thickness + z_fix())]) cylinder(h=bracket_base_thickness + 2 * z_fix(), d=matrix_screw_shaft_size + 2 * screw_tolerance);
     cylinder(h=bracket_wall_height + z_fix(), d=matrix_screw_head_size + 2 * screw_tolerance);
   }
-  
-  module extension_end_cutter() {
-    rotate([-90, 0, 0]) translate([0, -(bracket_thickness / 2 + bracket_base_thickness / 2), -z_fix()]) linear_extrude(matrix_frame_width + bracket_wall_thickness + 2 * z_fix()) difference () {
-      translate([-z_fix(), -z_fix()]) square([bracket_thickness / 2 + z_fix(), bracket_thickness + 2 * z_fix()]);
-      translate([bracket_thickness / 2, bracket_thickness / 2]) sector(bracket_thickness / 2, 90, 270);
-    }
-  }
+
+  screws = [
+    [matrix_screw_inset_x, matrix_screw_inset_y],
+    if (centre_screw_a) [0, matrix_screw_inset_y],
+    if (centre_screw_b) [matrix_screw_inset_x, 0],
+    if (centre_screw_a && centre_screw_b) [0, 0]
+  ];
 
   difference() {
     translate([0, 0, bracket_bottom]) union() {
@@ -226,9 +226,9 @@ module bracket_quadrant(centre_screw_a = false, centre_screw_b = false) {
           rotate([0, 0, -45]) translate([-bracket_wall_thickness / 2, 0]) square([bracket_wall_thickness, diagonal_length]);
           // Top screw surrounds
           screw_surround_radius = matrix_screw_head_size / 2 + screw_tolerance + bracket_wall_thickness;
-          translate([matrix_screw_inset_x, matrix_screw_inset_y]) circle(screw_surround_radius);
-          if (centre_screw_a) translate([0, matrix_screw_inset_y]) circle(screw_surround_radius);
-          if (centre_screw_b) translate([matrix_screw_inset_x, 0]) circle(screw_surround_radius);
+          for (i = screws) {
+            translate([i.x, i.y]) circle(screw_surround_radius);
+          }
         }
       }
       // Bottom cutouts
@@ -246,25 +246,9 @@ module bracket_quadrant(centre_screw_a = false, centre_screw_b = false) {
           translate([sector_offset, sector_offset]) sector(bracket_corner_radius - tolerance, 180, 270);
         }
       }
-      // Round extension ends
-//      translate([0, bracket_frame_extensions + matrix_frame_width, 0]) rotate([0, 0, -90]) extension_end_cutter();
-//      translate([bracket_frame_extensions + matrix_frame_width, matrix_frame_width + bracket_wall_thickness, 0]) rotate([0, 0, 180]) extension_end_cutter();
-      // Peg holes
-      if (matrix_has_pegs) {
-        pegs = [
-          [matrix_peg_inset_x, matrix_peg_inset_y]
-        ];
-        for (i = pegs) {
-          translate([i.x, i.y, -z_fix()]) cylinder(matrix_peg_height + 2 * z_fix(), d=matrix_peg_diameter + 2 * peg_tolerance);
-        }
-      }
+      // Peg hole
+      if (matrix_has_pegs) translate([matrix_peg_inset_x, matrix_peg_inset_y, -z_fix()]) cylinder(matrix_peg_height + 2 * z_fix(), d=matrix_peg_diameter + 2 * peg_tolerance);
       // Screw holes
-      screws = [
-        [matrix_screw_inset_x, matrix_screw_inset_y],
-        if (centre_screw_a) [0, matrix_screw_inset_y],
-        if (centre_screw_b) [matrix_screw_inset_x, 0],
-        if (centre_screw_a && centre_screw_b) [0, 0]
-      ];
       for (i = screws) {
         translate([i.x, i.y, bracket_base_thickness]) screw_hole();
       }
